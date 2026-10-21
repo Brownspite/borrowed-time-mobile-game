@@ -8,8 +8,10 @@ import '../components/arena_border.dart';
 import '../components/player.dart';
 import '../core/constants.dart';
 import '../core/player_stats.dart';
+import 'enemy_spawner.dart';
 
-class BorrowedTimeGame extends FlameGame with DragCallbacks {
+class BorrowedTimeGame extends FlameGame
+    with DragCallbacks, HasCollisionDetection {
   late Rect arenaBounds;
   final PlayerStats playerStats = PlayerStats();
   late final PlayerComponent player;
@@ -26,6 +28,8 @@ class BorrowedTimeGame extends FlameGame with DragCallbacks {
 
     player = PlayerComponent(stats: playerStats);
     await add(player);
+
+    await add(EnemySpawner());
   }
 
   @override
