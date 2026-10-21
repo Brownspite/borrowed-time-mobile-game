@@ -14,4 +14,21 @@ abstract class GameConstants {
   // Floating drag joystick parameters
   static const double joystickRadius = 55.0;
   static const double joystickDeadZone = 4.0;
+
+  // Enemy defaults
+  static const double enemyRadius = 10.0;
+  static const double enemyBaseSpeed = 80.0;
+  static const double enemyBaseHp = 30.0;
+  static const double enemyContactDamage = 15.0;
+
+  // Spawner
+  static const double spawnInterval = 1.5; // seconds between spawns
+
+  // Player damage flash
+  static const double flashDuration = 0.12; // seconds
+
+  // HP bar
+  static const double hpBarWidth = 30.0;
+  static const double hpBarHeight = 4.0;
+  static const double hpBarOffsetY = -22.0; // above the player center
 }
