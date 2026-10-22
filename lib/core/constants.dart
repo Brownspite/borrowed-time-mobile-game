@@ -31,4 +31,11 @@ abstract class GameConstants {
   static const double hpBarWidth = 30.0;
   static const double hpBarHeight = 4.0;
   static const double hpBarOffsetY = -22.0; // above the player center
+
+  // Bullet defaults
+  static const double bulletRadius = 3.5;
+  static const double bulletSpeed = 400.0;
+
+  // Score
+  static const int scorePerKill = 10;
 }
