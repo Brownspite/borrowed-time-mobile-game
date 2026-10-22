@@ -7,12 +7,14 @@ import 'package:flame/game.dart';
 import '../components/arena_border.dart';
 import '../components/player.dart';
 import '../core/constants.dart';
+import '../core/game_state.dart';
 import '../core/player_stats.dart';
 import 'enemy_spawner.dart';
 
 class BorrowedTimeGame extends FlameGame
     with DragCallbacks, HasCollisionDetection {
   late Rect arenaBounds;
+  final GameState gameState = GameState();
   final PlayerStats playerStats = PlayerStats();
   late final PlayerComponent player;
 

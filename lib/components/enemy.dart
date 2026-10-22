@@ -65,8 +65,12 @@ class EnemyComponent extends PositionComponent
   }
 
   void takeDamage(double damage) {
+    if (hp <= 0) return;
     hp -= damage;
     if (hp <= 0) {
+      if (isMounted) {
+        game.gameState.score += GameConstants.scorePerKill;
+      }
       removeFromParent();
     }
   }
