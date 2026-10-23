@@ -12,12 +12,16 @@ void main() {
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
+  final game = BorrowedTimeGame();
+
   runApp(
-    GameWidget(
-      game: BorrowedTimeGame(),
+    GameWidget<BorrowedTimeGame>(
+      game: game,
       backgroundBuilder: (_) => Container(
         color: GameConstants.backgroundColor,
       ),
+      overlayBuilderMap: game.buildOverlayMap(),
+      initialActiveOverlays: const [BorrowedTimeGame.initialOverlay],
     ),
   );
 }
