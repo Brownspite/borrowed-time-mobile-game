@@ -202,9 +202,17 @@ class PlayerComponent extends PositionComponent
 
     if (stats.hp <= 0) {
       stats.hp = 0;
-      // ignore: avoid_print
-      print('player died');
+      game.onPlayerDied();
     }
+  }
+
+  /// Resets player position and fire timer for an instant restart.
+  void resetForRestart() {
+    position.setValues(game.size.x / 2, game.size.y / 2);
+    _clampToArena();
+    _fireTimer = 0.0;
+    _isFlashing = false;
+    _flashTimer = 0.0;
   }
 
   void _clampToArena() {
