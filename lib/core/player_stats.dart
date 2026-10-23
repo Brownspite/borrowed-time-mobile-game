@@ -14,4 +14,13 @@ class PlayerStats {
     this.fireRate = 2.0,
     this.dashCooldown = 1.5,
   });
+
+  void reset() {
+    maxHp = 100.0;
+    hp = 100.0;
+    moveSpeed = 220.0;
+    damage = 25.0;
+    fireRate = 2.0;
+    dashCooldown = 1.5;
+  }
 }
