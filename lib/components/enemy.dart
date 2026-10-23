@@ -7,6 +7,11 @@ import 'package:flame/components.dart';
 import '../core/constants.dart';
 import '../game/borrowed_time_game.dart';
 
+/// Distinguishes the two enemy types.
+///   brute  — slower, tankier, red.
+///   runner — faster, weaker, orange.
+enum EnemyType { brute, runner }
+
 class EnemyComponent extends PositionComponent
     with HasGameReference<BorrowedTimeGame>, CollisionCallbacks {
   EnemyComponent({
@@ -14,6 +19,8 @@ class EnemyComponent extends PositionComponent
     required this.speed,
     required this.contactDamage,
     required Vector2 startPosition,
+    this.type = EnemyType.brute,
+    this.onDeath,
   }) : super(
           position: startPosition,
           size: Vector2.all(GameConstants.enemyRadius * 2),
@@ -23,12 +30,16 @@ class EnemyComponent extends PositionComponent
   double hp;
   final double speed;
   final double contactDamage;
+  final EnemyType type;
+
+  /// Called once when this enemy is killed (not when removed for other reasons).
+  final VoidCallback? onDeath;
 
   late final Paint _bodyPaint;
   late final Paint _corePaint;
   late final Offset _centerOffset;
 
-  // Reusable vector to avoid per-frame allocation
+  // Reusable vector — avoids per-frame allocation
   final Vector2 _direction = Vector2.zero();
 
   @override
@@ -36,12 +47,20 @@ class EnemyComponent extends PositionComponent
     const r = GameConstants.enemyRadius;
     _centerOffset = const Offset(r, r);
 
+    // Runners are orange; brutes are red
+    final bodyColor = type == EnemyType.runner
+        ? const Color(0xCCFF8C00)
+        : const Color(0xCCFF3344);
+    final coreColor = type == EnemyType.runner
+        ? const Color(0xFFFFB347)
+        : const Color(0xFFFF6677);
+
     _bodyPaint = Paint()
-      ..color = const Color(0xCCFF3344)
+      ..color = bodyColor
       ..style = PaintingStyle.fill;
 
     _corePaint = Paint()
-      ..color = const Color(0xFFFF6677)
+      ..color = coreColor
       ..style = PaintingStyle.fill;
 
     add(CircleHitbox());
@@ -70,6 +89,7 @@ class EnemyComponent extends PositionComponent
     if (hp <= 0) {
       if (isMounted) {
         game.gameState.score += GameConstants.scorePerKill;
+        onDeath?.call();
       }
       removeFromParent();
     }
@@ -85,28 +105,15 @@ class EnemyComponent extends PositionComponent
 
 /// Picks a random point on the arena edge for spawning.
 Vector2 randomEdgePosition(Rect arena, math.Random rng) {
-  // Pick a random side: 0=top, 1=right, 2=bottom, 3=left
   final side = rng.nextInt(4);
   switch (side) {
     case 0: // top
-      return Vector2(
-        arena.left + rng.nextDouble() * arena.width,
-        arena.top,
-      );
+      return Vector2(arena.left + rng.nextDouble() * arena.width, arena.top);
     case 1: // right
-      return Vector2(
-        arena.right,
-        arena.top + rng.nextDouble() * arena.height,
-      );
+      return Vector2(arena.right, arena.top + rng.nextDouble() * arena.height);
     case 2: // bottom
-      return Vector2(
-        arena.left + rng.nextDouble() * arena.width,
-        arena.bottom,
-      );
+      return Vector2(arena.left + rng.nextDouble() * arena.width, arena.bottom);
     default: // left
-      return Vector2(
-        arena.left,
-        arena.top + rng.nextDouble() * arena.height,
-      );
+      return Vector2(arena.left, arena.top + rng.nextDouble() * arena.height);
   }
 }
