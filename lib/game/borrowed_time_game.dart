@@ -1,8 +1,8 @@
 import 'dart:math' as math;
-import 'dart:ui';
 
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
+import 'package:flutter/widgets.dart';
 
 import '../components/arena_border.dart';
 import '../components/bullet.dart';
@@ -29,6 +29,7 @@ class BorrowedTimeGame extends FlameGame
   // ── Shared state (survives restarts) ─────────────────────────────────────
   final GameState gameState = GameState();
   final PlayerStats playerStats = PlayerStats();
+  final GlobalKey<HudOverlayState> hudKey = GlobalKey<HudOverlayState>();
 
   // ── Arena bounds (updated on resize) ─────────────────────────────────────
   late Rect arenaBounds;
@@ -96,16 +97,7 @@ class BorrowedTimeGame extends FlameGame
   }
 
   void _refreshHud() {
-    final state = overlays.activeOverlays;
-    if (state.contains(_OverlayKeys.hud)) {
-      // Find the HudOverlayState and call refresh()
-      // GameWidget rebuilds the overlay widget when we call overlays.add/remove,
-      // but since we keep it permanently mounted we instead carry a GlobalKey.
-      // Simpler: just remove+re-add to force a rebuild (cheap since it's a
-      // tiny widget tree and Flutter diffs it efficiently).
-      overlays.remove(_OverlayKeys.hud);
-      overlays.add(_OverlayKeys.hud);
-    }
+    hudKey.currentState?.refresh();
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -117,16 +109,23 @@ class BorrowedTimeGame extends FlameGame
     if (gameState.phase == GamePhase.dead) return; // guard double-trigger
     gameState.phase = GamePhase.dead;
     moveDirection.setZero();
-    overlays.remove(_OverlayKeys.betweenWaves);
-    overlays.add(_OverlayKeys.dead);
+    _isDragging = false;
+    try {
+      overlays.remove(_OverlayKeys.betweenWaves);
+      overlays.add(_OverlayKeys.dead);
+    } catch (_) {}
   }
 
   void showBetweenWavesOverlay() {
-    overlays.add(_OverlayKeys.betweenWaves);
+    try {
+      overlays.add(_OverlayKeys.betweenWaves);
+    } catch (_) {}
   }
 
   void hideBetweenWavesOverlay() {
-    overlays.remove(_OverlayKeys.betweenWaves);
+    try {
+      overlays.remove(_OverlayKeys.betweenWaves);
+    } catch (_) {}
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -140,6 +139,10 @@ class BorrowedTimeGame extends FlameGame
     gameState.reset();
     playerStats.reset();
     moveDirection.setZero();
+    _isDragging = false;
+
+    // Process any pending adds so they can be cleaned up
+    processLifecycleEvents();
 
     // 2. Remove all transient components (enemies, bullets)
     children.whereType<EnemyComponent>().toList().forEach((e) {
@@ -158,7 +161,10 @@ class BorrowedTimeGame extends FlameGame
     // 5. Swap overlays: remove dead + any stale betweenWaves first;
     //    resetForRestart already called showBetweenWavesOverlay so we just
     //    remove the dead overlay.
-    overlays.remove(_OverlayKeys.dead);
+    try {
+      overlays.remove(_OverlayKeys.dead);
+    } catch (_) {}
+    _refreshHud();
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -227,6 +233,7 @@ class BorrowedTimeGame extends FlameGame
   Map<String, OverlayWidgetBuilder<BorrowedTimeGame>> buildOverlayMap() {
     return {
       _OverlayKeys.hud: (context, game) => HudOverlay(
+            key: game.hudKey,
             gameState: game.gameState,
             playerStats: game.playerStats,
           ),
