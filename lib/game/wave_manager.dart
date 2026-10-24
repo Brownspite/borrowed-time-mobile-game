@@ -36,7 +36,7 @@ class WaveConfig {
 ///   – Wave 8 (index 7): dense, fast, tough.
 ///
 /// Linear lerp across 8 checkpoints keeps the maths simple and allocation-free.
-WaveConfig _buildConfig(int waveIndex) {
+WaveConfig buildWaveConfig(int waveIndex) {
   // Clamp so we don't need to worry about extremely high wave numbers breaking
   // the curve — just keep getting harder after wave 8.
   final t = (waveIndex / 7.0).clamp(0.0, 1.0); // 0 = wave 1, 1 = wave 8+
@@ -155,7 +155,6 @@ class WaveManager extends Component with HasGameReference<BorrowedTimeGame> {
   // ── Between waves ─────────────────────────────────────────────────────────
 
   void _startBetweenWaves() {
-    if (game.gameState.phase == GamePhase.betweenWaves) return;
     game.gameState.phase = GamePhase.betweenWaves;
     _betweenTimer = 0.0;
     game.showBetweenWavesOverlay();
@@ -170,7 +169,7 @@ class WaveManager extends Component with HasGameReference<BorrowedTimeGame> {
 
   void _startNextWave() {
     game.gameState.wave++;
-    _config = _buildConfig(game.gameState.wave - 1); // wave is 1-based
+    _config = buildWaveConfig(game.gameState.wave - 1); // wave is 1-based
     _enemiesLeftToSpawn = _config.totalEnemies;
     _enemiesAlive = 0;
     _totalSpawned = 0;
