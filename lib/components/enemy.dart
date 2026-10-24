@@ -95,6 +95,15 @@ class EnemyComponent extends PositionComponent
     }
   }
 
+  /// Called when colliding with the player — destroys the enemy and notifies WaveManager
+  /// without awarding score.
+  void onHitPlayer() {
+    if (hp <= 0) return;
+    hp = 0;
+    onDeath?.call();
+    removeFromParent();
+  }
+
   @override
   void render(Canvas canvas) {
     const r = GameConstants.enemyRadius;
