@@ -191,7 +191,7 @@ class PlayerComponent extends PositionComponent
 
     if (other is EnemyComponent) {
       _takeDamage(other.contactDamage);
-      other.removeFromParent();
+      other.onHitPlayer();
     }
   }
 
@@ -210,6 +210,7 @@ class PlayerComponent extends PositionComponent
   void resetForRestart() {
     position.setValues(game.size.x / 2, game.size.y / 2);
     _clampToArena();
+    bulletConfig = const BulletConfig();
     _fireTimer = 0.0;
     _isFlashing = false;
     _flashTimer = 0.0;
