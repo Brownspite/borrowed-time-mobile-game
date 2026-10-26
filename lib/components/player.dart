@@ -21,6 +21,20 @@ class PlayerComponent extends PositionComponent
   final PlayerStats stats;
   BulletConfig bulletConfig = const BulletConfig();
 
+  // ── Loan-related upgrades & modifiers ─────────────────────────────────────
+  bool dashEnabled = true;
+  double dashTimer = 0.0;
+  double dashCooldownTimer = 0.0;
+  bool get isDashing => dashTimer > 0;
+
+  int shieldHits = 0;
+  int secondWindCharges = 0;
+  bool hasSlowAura = false;
+  double slowAuraRadius = 130.0;
+  double slowAuraFactor = 0.50;
+  double lifestealAmount = 0.0;
+  double reverseControlsTimer = 0.0;
+
   late final Paint _outerGlowPaint;
   late final Paint _middleGlowPaint;
   late final Paint _corePaint;
@@ -28,6 +42,8 @@ class PlayerComponent extends PositionComponent
   late final Paint _flashPaint;
   late final Paint _hpBackPaint;
   late final Paint _hpFillPaint;
+  late final Paint _shieldPaint;
+  late final Paint _auraPaint;
   late final Offset _centerOffset;
 
   double _flashTimer = 0.0;
@@ -69,21 +85,55 @@ class PlayerComponent extends PositionComponent
       ..color = const Color(0xFF4AEADC)
       ..style = PaintingStyle.fill;
 
+    _shieldPaint = Paint()
+      ..color = const Color(0x884AEADC)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+
+    _auraPaint = Paint()
+      ..color = const Color(0x154AEADC)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
     add(CircleHitbox());
 
     position.setValues(game.size.x / 2, game.size.y / 2);
     _clampToArena();
   }
 
+  /// Triggers a burst dash evasion if dash is enabled and cooldown ready.
+  bool dash() {
+    if (!dashEnabled || dashCooldownTimer > 0) return false;
+    dashTimer = 0.15;
+    dashCooldownTimer = stats.dashCooldown;
+    return true;
+  }
+
+  void reverseControls(double seconds) {
+    reverseControlsTimer = seconds;
+  }
+
+  void onEnemyKilled() {
+    if (lifestealAmount > 0) {
+      stats.hp = math.min(stats.maxHp, stats.hp + lifestealAmount);
+    }
+  }
+
   @override
   void update(double dt) {
     super.update(dt);
 
+    if (dashCooldownTimer > 0) dashCooldownTimer -= dt;
+    if (dashTimer > 0) dashTimer -= dt;
+    if (reverseControlsTimer > 0) reverseControlsTimer -= dt;
+
     // Movement
     final moveDir = game.moveDirection;
     if (!moveDir.isZero()) {
-      position.x += moveDir.x * stats.moveSpeed * dt;
-      position.y += moveDir.y * stats.moveSpeed * dt;
+      final mult = (isDashing ? 3.0 : 1.0) *
+          (reverseControlsTimer > 0 ? -1.0 : 1.0);
+      position.x += moveDir.x * stats.moveSpeed * mult * dt;
+      position.y += moveDir.y * stats.moveSpeed * mult * dt;
       _clampToArena();
     }
 
@@ -196,6 +246,21 @@ class PlayerComponent extends PositionComponent
   }
 
   void _takeDamage(double amount) {
+    if (shieldHits > 0) {
+      shieldHits--;
+      _isFlashing = true;
+      _flashTimer = GameConstants.flashDuration;
+      return;
+    }
+
+    if (stats.hp - amount <= 0 && secondWindCharges > 0) {
+      secondWindCharges--;
+      stats.hp = stats.maxHp * 0.50; // revive with 50% max HP
+      _isFlashing = true;
+      _flashTimer = GameConstants.flashDuration * 2;
+      return;
+    }
+
     stats.hp -= amount;
     _isFlashing = true;
     _flashTimer = GameConstants.flashDuration;
@@ -206,6 +271,10 @@ class PlayerComponent extends PositionComponent
     }
   }
 
+  void takeExplosionDamage(double amount) {
+    _takeDamage(amount);
+  }
+
   /// Resets player position and fire timer for an instant restart.
   void resetForRestart() {
     position.setValues(game.size.x / 2, game.size.y / 2);
@@ -214,6 +283,14 @@ class PlayerComponent extends PositionComponent
     _fireTimer = 0.0;
     _isFlashing = false;
     _flashTimer = 0.0;
+    dashEnabled = true;
+    dashTimer = 0.0;
+    dashCooldownTimer = 0.0;
+    shieldHits = 0;
+    secondWindCharges = 0;
+    hasSlowAura = false;
+    lifestealAmount = 0.0;
+    reverseControlsTimer = 0.0;
   }
 
   void _clampToArena() {
@@ -227,6 +304,13 @@ class PlayerComponent extends PositionComponent
   @override
   void render(Canvas canvas) {
     const r = GameConstants.playerRadius;
+
+    if (hasSlowAura) {
+      canvas.drawCircle(_centerOffset, slowAuraRadius, _auraPaint);
+    }
+    if (shieldHits > 0) {
+      canvas.drawCircle(_centerOffset, r * 1.8, _shieldPaint);
+    }
 
     if (_isFlashing) {
       canvas.drawCircle(_centerOffset, r * 1.5, _flashPaint);

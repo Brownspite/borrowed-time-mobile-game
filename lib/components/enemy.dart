@@ -78,8 +78,12 @@ class EnemyComponent extends PositionComponent
     final dist = _direction.length;
     if (dist > 1.0) {
       _direction.scale(1.0 / dist); // normalize without allocating
-      position.x += _direction.x * speed * dt;
-      position.y += _direction.y * speed * dt;
+      var effectiveSpeed = speed * game.enemySpeedMultiplier;
+      if (game.player.hasSlowAura && dist <= game.player.slowAuraRadius) {
+        effectiveSpeed *= game.player.slowAuraFactor;
+      }
+      position.x += _direction.x * effectiveSpeed * dt;
+      position.y += _direction.y * effectiveSpeed * dt;
     }
   }
 
@@ -88,7 +92,7 @@ class EnemyComponent extends PositionComponent
     hp -= damage;
     if (hp <= 0) {
       if (isMounted) {
-        game.gameState.score += GameConstants.scorePerKill;
+        game.onEnemyKilled(this);
         onDeath?.call();
       }
       removeFromParent();
