@@ -124,7 +124,7 @@ class WaveManager extends Component with HasGameReference<BorrowedTimeGame> {
 
     // Wave is clear once ALL enemies have been spawned AND killed
     if (_totalSpawned > 0 && _enemiesLeftToSpawn == 0 && _enemiesAlive == 0) {
-      _startBetweenWaves();
+      _startBetweenWaves(isWaveClear: true);
     }
   }
 
@@ -154,9 +154,12 @@ class WaveManager extends Component with HasGameReference<BorrowedTimeGame> {
 
   // ── Between waves ─────────────────────────────────────────────────────────
 
-  void _startBetweenWaves() {
+  void _startBetweenWaves({bool isWaveClear = false}) {
     game.gameState.phase = GamePhase.betweenWaves;
     _betweenTimer = 0.0;
+    if (isWaveClear) {
+      game.debtManager.onWaveCleared();
+    }
     game.showBetweenWavesOverlay();
   }
 
@@ -169,13 +172,42 @@ class WaveManager extends Component with HasGameReference<BorrowedTimeGame> {
 
   void _startNextWave() {
     game.gameState.wave++;
-    _config = buildWaveConfig(game.gameState.wave - 1); // wave is 1-based
+    final baseConfig = buildWaveConfig(game.gameState.wave - 1); // wave is 1-based
+    final totalCount =
+        (baseConfig.totalEnemies * game.enemyCountMultiplier).round();
+    _config = WaveConfig(
+      totalEnemies: totalCount,
+      spawnInterval: baseConfig.spawnInterval,
+      bruteHp: baseConfig.bruteHp,
+      bruteSpeed: baseConfig.bruteSpeed * game.enemySpeedMultiplier,
+      runnerHp: baseConfig.runnerHp,
+      runnerSpeed: baseConfig.runnerSpeed * game.enemySpeedMultiplier,
+      runnerFraction: baseConfig.runnerFraction,
+    );
     _enemiesLeftToSpawn = _config.totalEnemies;
     _enemiesAlive = 0;
     _totalSpawned = 0;
     _spawnTimer = 0.0;
+
+    // Apply any debt penalty starting HP (e.g. Second Wind debt)
+    if (game.nextWaveStartingHp != null) {
+      game.playerStats.hp = game.nextWaveStartingHp!;
+      game.nextWaveStartingHp = null;
+    }
+
     game.gameState.phase = GamePhase.playing;
     game.hideBetweenWavesOverlay();
+  }
+
+  /// Instantly finishes the current wave for testing/debugging.
+  void forceClearWave() {
+    for (final enemy in game.children.whereType<EnemyComponent>().toList()) {
+      enemy.removeFromParent();
+    }
+    _enemiesLeftToSpawn = 0;
+    _enemiesAlive = 0;
+    _totalSpawned = 1;
+    _startBetweenWaves(isWaveClear: true);
   }
 
   // ── Restart ───────────────────────────────────────────────────────────────

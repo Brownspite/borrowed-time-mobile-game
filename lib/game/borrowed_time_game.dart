@@ -12,6 +12,7 @@ import '../core/constants.dart';
 import '../core/game_phase.dart';
 import '../core/game_state.dart';
 import '../core/player_stats.dart';
+import '../loans/loan_registry.dart';
 import '../ui/between_waves_overlay.dart';
 import '../ui/dead_overlay.dart';
 import '../ui/hud_overlay.dart';
@@ -29,7 +30,18 @@ class BorrowedTimeGame extends FlameGame
   // ── Shared state (survives restarts) ─────────────────────────────────────
   final GameState gameState = GameState();
   final PlayerStats playerStats = PlayerStats();
+  late final DebtManager debtManager;
   final GlobalKey<HudOverlayState> hudKey = GlobalKey<HudOverlayState>();
+
+  // ── Loan-related modifiers & effects ─────────────────────────────────────
+  double scoreMultiplier = 1.0;
+  double enemySpeedMultiplier = 1.0;
+  double enemyCountMultiplier = 1.0;
+  double arenaShrinkFactor = 0.0;
+  bool explosiveKillsEnabled = false;
+  bool explosionsHurtPlayer = false;
+  double explosionSelfDamage = LoanTuning.explosionSelfDamage;
+  double? nextWaveStartingHp;
 
   // ── Arena bounds (updated on resize) ─────────────────────────────────────
   late Rect arenaBounds;
@@ -54,6 +66,7 @@ class BorrowedTimeGame extends FlameGame
 
   @override
   Future<void> onLoad() async {
+    debtManager = DebtManager(game: this);
     _updateArenaBounds();
     await add(ArenaBorder());
     await _addPlayer();
@@ -69,7 +82,74 @@ class BorrowedTimeGame extends FlameGame
 
   void _updateArenaBounds() {
     const p = GameConstants.arenaPadding;
-    arenaBounds = Rect.fromLTWH(p, p, size.x - p * 2, size.y - p * 2);
+    final baseW = size.x - p * 2;
+    final baseH = size.y - p * 2;
+    final shrinkW = baseW * arenaShrinkFactor;
+    final shrinkH = baseH * arenaShrinkFactor;
+    arenaBounds = Rect.fromLTWH(
+      p + shrinkW / 2,
+      p + shrinkH / 2,
+      baseW - shrinkW,
+      baseH - shrinkH,
+    );
+  }
+
+  void setArenaShrink(double factor) {
+    arenaShrinkFactor = factor;
+    _updateArenaBounds();
+    if (isLoaded) {
+      player.position.x = player.position.x.clamp(
+        arenaBounds.left + GameConstants.playerRadius,
+        arenaBounds.right - GameConstants.playerRadius,
+      );
+      player.position.y = player.position.y.clamp(
+        arenaBounds.top + GameConstants.playerRadius,
+        arenaBounds.bottom - GameConstants.playerRadius,
+      );
+    }
+  }
+
+  void setNextWaveStartingHp(double hp) {
+    nextWaveStartingHp = hp;
+  }
+
+  void onEnemyKilled(EnemyComponent enemy) {
+    final points = (GameConstants.scorePerKill * scoreMultiplier).round();
+    gameState.score += points;
+    player.onEnemyKilled();
+    if (explosiveKillsEnabled) {
+      triggerEnemyExplosion(enemy.position);
+    }
+  }
+
+  void triggerEnemyExplosion(Vector2 pos) {
+    final radius = LoanTuning.explosionRadius;
+    final radiusSq = radius * radius;
+    for (final child in children) {
+      if (child is EnemyComponent && !child.isRemoving && child.hp > 0) {
+        final dx = child.position.x - pos.x;
+        final dy = child.position.y - pos.y;
+        if (dx * dx + dy * dy <= radiusSq) {
+          child.takeDamage(LoanTuning.explosionDamage);
+        }
+      }
+    }
+    if (explosionsHurtPlayer) {
+      final pdx = player.position.x - pos.x;
+      final pdy = player.position.y - pos.y;
+      if (pdx * pdx + pdy * pdy <= radiusSq) {
+        player.takeExplosionDamage(explosionSelfDamage);
+      }
+    }
+  }
+
+  // ── Debug helpers ────────────────────────────────────────────────────────
+  void debugGiveLoan(Loan loan) {
+    debtManager.addLoan(loan);
+  }
+
+  void debugForceWaveClear() {
+    _waveManager.forceClearWave();
   }
 
   Future<void> _addPlayer() async {
@@ -138,6 +218,16 @@ class BorrowedTimeGame extends FlameGame
     // 1. Reset data
     gameState.reset();
     playerStats.reset();
+    debtManager.reset();
+    scoreMultiplier = 1.0;
+    enemySpeedMultiplier = 1.0;
+    enemyCountMultiplier = 1.0;
+    arenaShrinkFactor = 0.0;
+    explosiveKillsEnabled = false;
+    explosionsHurtPlayer = false;
+    explosionSelfDamage = LoanTuning.explosionSelfDamage;
+    nextWaveStartingHp = null;
+    _updateArenaBounds();
     moveDirection.setZero();
     _isDragging = false;
 
@@ -234,6 +324,7 @@ class BorrowedTimeGame extends FlameGame
     return {
       _OverlayKeys.hud: (context, game) => HudOverlay(
             key: game.hudKey,
+            game: game,
             gameState: game.gameState,
             playerStats: game.playerStats,
           ),
