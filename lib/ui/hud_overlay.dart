@@ -5,6 +5,7 @@ import '../core/game_state.dart';
 import '../core/player_stats.dart';
 import '../game/borrowed_time_game.dart';
 import '../loans/loan_registry.dart';
+import 'compact_debt_hud.dart';
 
 /// Minimal HUD drawn on top of the game canvas via GameWidget overlays.
 /// Shows HP bar, score, current wave number, plus temporary debug tools to force-give loans.
@@ -424,6 +425,7 @@ class HudOverlayState extends State<HudOverlay> {
               ),
             ],
           ),
+          CompactDebtHud(debtManager: widget.game.debtManager),
         ],
       ),
     ),
