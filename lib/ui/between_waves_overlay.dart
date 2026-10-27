@@ -33,6 +33,7 @@ class _BetweenWavesOverlayState extends State<BetweenWavesOverlay> {
     final loan = controller.currentLoan;
     if (loan != null && accepted) {
       widget.game?.debtManager.addLoan(loan);
+      widget.game?.hudKey.currentState?.refresh();
     }
     controller.recordDecision(accepted: accepted);
 
@@ -134,7 +135,7 @@ class _BetweenWavesOverlayState extends State<BetweenWavesOverlay> {
 
                   // Swipable Card
                   SwipableLoanCard(
-                    key: ValueKey('${currentLoan.id}_$offerIndex'),
+                    key: _cardKey,
                     loan: currentLoan,
                     offerIndex: offerIndex,
                     totalOffers: totalOffers,
@@ -145,8 +146,20 @@ class _BetweenWavesOverlayState extends State<BetweenWavesOverlay> {
 
                   // Accessibility Fallback Buttons
                   LoanActionButtons(
-                    onTake: () => _handleDecision(accepted: true),
-                    onRefuse: () => _handleDecision(accepted: false),
+                    onTake: () {
+                      if (_cardKey.currentState != null) {
+                        _cardKey.currentState!.dismissLeft();
+                      } else {
+                        _handleDecision(accepted: true);
+                      }
+                    },
+                    onRefuse: () {
+                      if (_cardKey.currentState != null) {
+                        _cardKey.currentState!.dismissRight();
+                      } else {
+                        _handleDecision(accepted: false);
+                      }
+                    },
                   ),
                   const SizedBox(height: 8),
 
