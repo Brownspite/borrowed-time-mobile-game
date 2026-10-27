@@ -360,6 +360,7 @@ class BorrowedTimeGame extends FlameGame
           ),
       _OverlayKeys.betweenWaves: (context, game) => BetweenWavesOverlay(
             waveNumber: game.gameState.wave,
+            game: game,
           ),
     };
   }
