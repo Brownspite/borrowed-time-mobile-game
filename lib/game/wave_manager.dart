@@ -159,18 +159,23 @@ class WaveManager extends Component with HasGameReference<BorrowedTimeGame> {
     _betweenTimer = 0.0;
     if (isWaveClear) {
       game.debtManager.onWaveCleared();
+      game.startLoanOffers();
+    } else {
+      game.showBetweenWavesOverlay();
     }
-    game.showBetweenWavesOverlay();
   }
 
   void _tickBetweenWaves(double dt) {
+    // If loan offers are active, wait for the player to make choices.
+    if (game.currentOfferController != null) return;
+
     _betweenTimer += dt;
     if (_betweenTimer >= _betweenWavesDuration) {
-      _startNextWave();
+      startNextWave();
     }
   }
 
-  void _startNextWave() {
+  void startNextWave() {
     game.gameState.wave++;
     final baseConfig = buildWaveConfig(game.gameState.wave - 1); // wave is 1-based
     final totalCount =

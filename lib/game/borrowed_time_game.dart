@@ -33,6 +33,9 @@ class BorrowedTimeGame extends FlameGame
   late final DebtManager debtManager;
   final GlobalKey<HudOverlayState> hudKey = GlobalKey<HudOverlayState>();
 
+  // ── Loan offer state ───────────────────────────────────────────────────────
+  LoanOfferController? currentOfferController;
+
   // ── Loan-related modifiers & effects ─────────────────────────────────────
   double scoreMultiplier = 1.0;
   double enemySpeedMultiplier = 1.0;
@@ -196,6 +199,26 @@ class BorrowedTimeGame extends FlameGame
     } catch (_) {}
   }
 
+  WaveManager get waveManager => _waveManager;
+
+  void startLoanOffers() {
+    final activeIds = debtManager.activeDebts.map((d) => d.loan.id).toList();
+    final controller = LoanOfferController(activeLoanIds: activeIds);
+    if (controller.offers.isNotEmpty) {
+      currentOfferController = controller;
+      pauseEngine();
+    } else {
+      currentOfferController = null;
+    }
+    showBetweenWavesOverlay();
+  }
+
+  void onLoanOffersCompleted() {
+    currentOfferController = null;
+    resumeEngine();
+    _waveManager.startNextWave();
+  }
+
   void showBetweenWavesOverlay() {
     try {
       overlays.add(_OverlayKeys.betweenWaves);
@@ -228,6 +251,8 @@ class BorrowedTimeGame extends FlameGame
     explosionSelfDamage = LoanTuning.explosionSelfDamage;
     nextWaveStartingHp = null;
     _updateArenaBounds();
+    if (paused) resumeEngine();
+    currentOfferController = null;
     moveDirection.setZero();
     _isDragging = false;
 
