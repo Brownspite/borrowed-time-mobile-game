@@ -202,12 +202,17 @@ class SwipableLoanCardState extends State<SwipableLoanCard>
       curve: Curves.easeOutQuad,
     ));
 
-    _animController.reset();
-    _animController.forward().then((_) {
-      if (mounted) {
-        onComplete();
+    late final void Function(AnimationStatus) listener;
+    listener = (status) {
+      if (status == AnimationStatus.completed) {
+        _animController.removeStatusListener(listener);
+        if (mounted) {
+          onComplete();
+        }
       }
-    });
+    };
+    _animController.addStatusListener(listener);
+    _animController.forward(from: 0.0);
   }
 
   double _calculateAngle(double dx) {
