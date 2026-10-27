@@ -86,6 +86,7 @@ class SwipableLoanCardState extends State<SwipableLoanCard>
   void _onPanStart(DragStartDetails details) {
     if (_isDismissed) return;
     _animController.stop();
+    _dragOffset = Offset.zero;
   }
 
   void _onPanUpdate(DragUpdateDetails details) {

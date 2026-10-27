@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../game/borrowed_time_game.dart';
+import 'debt_banner_widget.dart';
+import 'debt_repayment_panel.dart';
 import 'loan_action_buttons.dart';
 import 'swipable_loan_card.dart';
 
@@ -105,33 +107,91 @@ class _BetweenWavesOverlayState extends State<BetweenWavesOverlay> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Header
-                  Text(
-                    'Wave ${widget.waveNumber} cleared',
-                    style: const TextStyle(
-                      color: Color(0xFF4AEADC),
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.2,
-                      shadows: [
-                        Shadow(
-                          color: Color(0xFF4AEADC),
-                          blurRadius: 12,
+                  // Debt collection alert banners (if debts came due or overdue)
+                  if (widget.game != null &&
+                      widget.game!.debtManager.pendingNotices.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: DebtBannerWidget(
+                        notices: widget.game!.debtManager.pendingNotices,
+                        onDismiss: () {
+                          widget.game!.debtManager.clearPendingNotices();
+                          setState(() {});
+                        },
+                      ),
+                    ),
+
+                  // Header with Wave Cleared title & Pay Debts button
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Wave ${widget.waveNumber} cleared',
+                            style: const TextStyle(
+                              color: Color(0xFF4AEADC),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1.2,
+                              shadows: [
+                                Shadow(
+                                  color: Color(0xFF4AEADC),
+                                  blurRadius: 12,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'THE LOAN SHARK OFFERS UPGRADES',
+                            style: TextStyle(
+                              color: Colors.white60,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                        ],
+                      ),
+                      // Pay Debts Button
+                      if (widget.game != null)
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.account_balance_wallet_outlined, size: 14),
+                          label: Text(
+                            widget.game!.debtManager.activeDebts.isNotEmpty
+                                ? 'Pay Debts (${widget.game!.debtManager.activeDebts.length})'
+                                : 'Pay Debts',
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: widget.game!.debtManager.activeDebts.isNotEmpty
+                                ? const Color(0xFF28283C)
+                                : Colors.white10,
+                            foregroundColor: widget.game!.debtManager.activeDebts.isNotEmpty
+                                ? const Color(0xFFFFD166)
+                                : Colors.white54,
+                            side: BorderSide(
+                              color: widget.game!.debtManager.activeDebts.isNotEmpty
+                                  ? const Color(0xFFFFD166)
+                                  : Colors.white24,
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          onPressed: () {
+                            DebtRepaymentPanel.show(
+                              context,
+                              game: widget.game!,
+                              onDebtPaid: () => setState(() {}),
+                            );
+                          },
                         ),
-                      ],
-                    ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'THE LOAN SHARK OFFERS UPGRADES',
-                    style: TextStyle(
-                      color: Colors.white60,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
 
                   // Swipable Card
                   SwipableLoanCard(
