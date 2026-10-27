@@ -30,8 +30,12 @@ class SwipableLoanCard extends StatefulWidget {
 }
 
 class SwipableLoanCardState extends State<SwipableLoanCard>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _animController;
+  late final AnimationController _entryAnimController;
+  late final Animation<double> _entryScale;
+  late final Animation<double> _entryOpacity;
+
   Animation<Offset>? _offsetAnim;
   Animation<double>? _angleAnim;
 
@@ -48,6 +52,17 @@ class SwipableLoanCardState extends State<SwipableLoanCard>
       vsync: this,
       duration: widget.animationDuration,
     );
+    _entryAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 160),
+    );
+    _entryScale = Tween<double>(begin: 0.92, end: 1.0).animate(
+      CurvedAnimation(parent: _entryAnimController, curve: Curves.easeOutCubic),
+    );
+    _entryOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _entryAnimController, curve: Curves.easeIn),
+    );
+    _entryAnimController.forward();
   }
 
   @override
@@ -57,12 +72,14 @@ class SwipableLoanCardState extends State<SwipableLoanCard>
       _dragOffset = Offset.zero;
       _isDismissed = false;
       _animController.reset();
+      _entryAnimController.forward(from: 0.0);
     }
   }
 
   @override
   void dispose() {
     _animController.dispose();
+    _entryAnimController.dispose();
     super.dispose();
   }
 
@@ -218,11 +235,15 @@ class SwipableLoanCardState extends State<SwipableLoanCard>
             ? (currentOffset.dx / widget.swipeThreshold).clamp(0.0, 1.0)
             : 0.0;
 
-        return Transform.translate(
-          offset: Offset(currentOffset.dx, currentOffset.dy * 0.3),
-          child: Transform.rotate(
-            angle: currentAngle,
-            alignment: Alignment.bottomCenter,
+        return FadeTransition(
+          opacity: _entryOpacity,
+          child: ScaleTransition(
+            scale: _entryScale,
+            child: Transform.translate(
+              offset: Offset(currentOffset.dx, currentOffset.dy * 0.3),
+              child: Transform.rotate(
+                angle: currentAngle,
+                alignment: Alignment.bottomCenter,
             child: GestureDetector(
               onPanStart: (d) => _onPanStart(d),
               onPanUpdate: _onPanUpdate,
@@ -265,9 +286,11 @@ class SwipableLoanCardState extends State<SwipableLoanCard>
               ),
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
+  },
+);
   }
 }
 
