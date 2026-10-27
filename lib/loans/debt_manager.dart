@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import '../game/borrowed_time_game.dart';
 import 'active_debt.dart';
+import 'debt_notice.dart';
 import 'loan.dart';
 import 'loan_constants.dart';
 
@@ -17,6 +18,23 @@ class DebtManager {
 
   final BorrowedTimeGame game;
   final List<ActiveDebt> activeDebts = [];
+  final List<DebtNotice> pendingNotices = [];
+
+  /// Exact HP cost to settle a debt early.
+  double get hpCost => game.playerStats.maxHp * LoanTuning.earlyPayHpFraction;
+
+  /// Exact score cost to settle a debt early.
+  int get scoreCost => LoanTuning.earlyPayScoreCost;
+
+  /// Whether player has enough HP to pay early without dying (must have > hpCost and > 1.0).
+  bool get canAffordHp =>
+      game.playerStats.hp > hpCost && game.playerStats.hp > 1.0;
+
+  /// Whether player has enough score to pay early.
+  bool get canAffordScore => game.gameState.score >= scoreCost;
+
+  /// Whether there are other upgrades available to sacrifice.
+  bool canSacrifice(ActiveDebt debt) => activeDebts.any((d) => d != debt);
 
   /// Quantifies the player's total debt pressure for the loan shark mood.
   /// Standard active loans add 1. Due/overdue loans add 2 + (overdueWaves * 2).
@@ -43,7 +61,10 @@ class DebtManager {
   /// Invoked every time the player clears a wave.
   /// Decrements countdowns; applies penalties upon reaching 0;
   /// escalates penalties with each subsequent overdue wave.
+  /// Generates [DebtNotice] banners for collection and overdue interest alerts.
   void onWaveCleared() {
+    pendingNotices.clear();
+
     for (final debt in List<ActiveDebt>.from(activeDebts)) {
       if (debt.remainingWaves > 0) {
         debt.remainingWaves--;
@@ -52,6 +73,14 @@ class DebtManager {
           debt.penaltyApplied = true;
           debt.currentPenaltyMultiplier = 1.0;
           debt.loan.applyPenalty(game, penaltyMultiplier: 1.0);
+          pendingNotices.add(DebtNotice(
+            loanId: debt.loan.id,
+            loanName: debt.loan.name,
+            penaltyDescription: debt.loan.debtDescription,
+            isOverdue: false,
+            overdueWaves: 0,
+            multiplier: 1.0,
+          ));
         }
       } else {
         // Debt was already due and remains unpaid -> overdue escalation
@@ -62,34 +91,52 @@ class DebtManager {
           game,
           penaltyMultiplier: debt.currentPenaltyMultiplier,
         );
+        pendingNotices.add(DebtNotice(
+          loanId: debt.loan.id,
+          loanName: debt.loan.name,
+          penaltyDescription: debt.loan.debtDescription,
+          isOverdue: true,
+          overdueWaves: debt.overdueWaves,
+          multiplier: debt.currentPenaltyMultiplier,
+        ));
       }
     }
   }
 
+  /// Clears any pending debt collection banners.
+  void clearPendingNotices() {
+    pendingNotices.clear();
+  }
+
   /// Pays off a debt early or before further overdue penalties accumulate.
   /// If successfully paid, the debt is resolved and removed from [activeDebts].
+  /// Bonus of the paid [debt] is retained.
   /// Returns true if payment succeeded, false otherwise.
-  bool payEarly(ActiveDebt debt, PaymentType paymentType) {
+  bool payEarly(
+    ActiveDebt debt,
+    PaymentType paymentType, {
+    ActiveDebt? sacrificeTarget,
+  }) {
     if (!activeDebts.contains(debt)) return false;
 
     switch (paymentType) {
       case PaymentType.hp:
-        final cost = game.playerStats.maxHp * LoanTuning.earlyPayHpFraction;
-        if (game.playerStats.hp <= 1.0) return false;
-        final deduction = math.min(cost, game.playerStats.hp - 1.0);
-        game.playerStats.hp -= deduction;
+        if (!canAffordHp) return false;
+        game.playerStats.hp -= hpCost;
         break;
 
       case PaymentType.score:
-        if (game.gameState.score < LoanTuning.earlyPayScoreCost) return false;
-        game.gameState.score -= LoanTuning.earlyPayScoreCost;
+        if (!canAffordScore) return false;
+        game.gameState.score -= scoreCost;
         break;
 
       case PaymentType.sacrificeUpgrade:
         final candidates = activeDebts.where((d) => d != debt).toList();
         if (candidates.isEmpty) return false;
+        final sacrificed = (sacrificeTarget != null && candidates.contains(sacrificeTarget))
+            ? sacrificeTarget
+            : candidates.first;
         // Sacrifice another active loan to clear this one
-        final sacrificed = candidates.first;
         sacrificed.loan.removeBonus(game);
         activeDebts.remove(sacrificed);
         break;
@@ -119,5 +166,6 @@ class DebtManager {
   /// Wipes all active debts and their bonuses on restart.
   void reset() {
     activeDebts.clear();
+    pendingNotices.clear();
   }
 }
