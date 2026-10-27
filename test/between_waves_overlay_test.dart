@@ -67,7 +67,8 @@ void main() {
 
     Future<void> pumpAnimation(WidgetTester tester) async {
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 150));
       await tester.pump();
     }
 
@@ -92,7 +93,7 @@ void main() {
 
       // Drag card to the LEFT (swipe left = TAKE)
       final cardFinder = find.byType(SwipableLoanCard);
-      await tester.drag(cardFinder, const Offset(-150, 0));
+      await tester.fling(cardFinder, const Offset(-200, 0), 1000);
       await pumpAnimation(tester);
 
       // First loan was taken immediately
@@ -123,7 +124,7 @@ void main() {
 
       // Drag card to the RIGHT (swipe right = REFUSE)
       final cardFinder = find.byType(SwipableLoanCard);
-      await tester.drag(cardFinder, const Offset(150, 0));
+      await tester.fling(cardFinder, const Offset(200, 0), 1000);
       await pumpAnimation(tester);
 
       // First loan was NOT taken
