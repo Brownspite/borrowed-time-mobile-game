@@ -92,7 +92,7 @@ void main() {
 
       // Drag card to the LEFT (swipe left = TAKE)
       final cardFinder = find.byType(SwipableLoanCard);
-      await tester.drag(cardFinder, const Offset(-250, 0));
+      await tester.drag(cardFinder, const Offset(-150, 0));
       await pumpAnimation(tester);
 
       // First loan was taken immediately
@@ -123,7 +123,7 @@ void main() {
 
       // Drag card to the RIGHT (swipe right = REFUSE)
       final cardFinder = find.byType(SwipableLoanCard);
-      await tester.drag(cardFinder, const Offset(250, 0));
+      await tester.drag(cardFinder, const Offset(150, 0));
       await pumpAnimation(tester);
 
       // First loan was NOT taken

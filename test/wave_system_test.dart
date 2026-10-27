@@ -8,6 +8,7 @@ import 'package:borrowed_time/game/wave_manager.dart';
 import 'package:borrowed_time/ui/between_waves_overlay.dart';
 import 'package:borrowed_time/ui/dead_overlay.dart';
 import 'package:borrowed_time/ui/hud_overlay.dart';
+import 'package:borrowed_time/ui/swipable_loan_card.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -123,10 +124,33 @@ void main() {
       expect(game.gameState.phase, GamePhase.betweenWaves);
       expect(find.byType(BetweenWavesOverlay), findsOneWidget);
       expect(find.text('Wave 1 cleared'), findsOneWidget);
-      expect(find.text('Wave 2 incoming'), findsOneWidget);
+      expect(find.text('THE LOAN SHARK OFFERS UPGRADES'), findsOneWidget);
+      expect(find.byType(SwipableLoanCard), findsOneWidget);
 
-      // After 1.5s pause, wave 2 starts
-      await tester.pump(const Duration(milliseconds: 1600));
+      // Step through the 3 loan offers
+      // Offer 1: TAKE loan
+      await tester.tap(find.text('TAKE LOAN'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pump();
+      expect(game.debtManager.activeDebts.length, 1);
+
+      // Offer 2: REFUSE loan
+      await tester.tap(find.text('REFUSE'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pump();
+      expect(game.debtManager.activeDebts.length, 1);
+
+      // Offer 3: TAKE loan
+      await tester.tap(find.text('TAKE LOAN'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pump();
+      expect(game.debtManager.activeDebts.length, 2);
+
+      // All 3 cards processed -> starts wave 2!
+      await tester.pump(const Duration(milliseconds: 100));
       expect(game.gameState.phase, GamePhase.playing);
       expect(game.gameState.wave, 2);
       expect(find.byType(BetweenWavesOverlay), findsNothing);
