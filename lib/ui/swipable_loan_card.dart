@@ -211,6 +211,13 @@ class SwipableLoanCardState extends State<SwipableLoanCard>
             ? _angleAnim!.value
             : _calculateAngle(currentOffset.dx);
 
+        final takeOpacity = currentOffset.dx < 0
+            ? (-currentOffset.dx / widget.swipeThreshold).clamp(0.0, 1.0)
+            : 0.0;
+        final refuseOpacity = currentOffset.dx > 0
+            ? (currentOffset.dx / widget.swipeThreshold).clamp(0.0, 1.0)
+            : 0.0;
+
         return Transform.translate(
           offset: Offset(currentOffset.dx, currentOffset.dy * 0.3),
           child: Transform.rotate(
@@ -220,15 +227,89 @@ class SwipableLoanCardState extends State<SwipableLoanCard>
               onPanStart: (d) => _onPanStart(d),
               onPanUpdate: _onPanUpdate,
               onPanEnd: _onPanEnd,
-              child: LoanCardWidget(
-                loan: widget.loan,
-                offerIndex: widget.offerIndex,
-                totalOffers: widget.totalOffers,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  LoanCardWidget(
+                    loan: widget.loan,
+                    offerIndex: widget.offerIndex,
+                    totalOffers: widget.totalOffers,
+                  ),
+                  if (takeOpacity > 0)
+                    Positioned(
+                      top: 28,
+                      right: 18,
+                      child: Opacity(
+                        opacity: takeOpacity,
+                        child: const _DecisionStamp(
+                          label: 'TAKE',
+                          color: Color(0xFF00FF9D),
+                          rotation: -0.15,
+                        ),
+                      ),
+                    ),
+                  if (refuseOpacity > 0)
+                    Positioned(
+                      top: 28,
+                      left: 18,
+                      child: Opacity(
+                        opacity: refuseOpacity,
+                        child: const _DecisionStamp(
+                          label: 'REFUSE',
+                          color: Color(0xFFEF476F),
+                          rotation: 0.15,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
         );
       },
+    );
+  }
+}
+
+class _DecisionStamp extends StatelessWidget {
+  const _DecisionStamp({
+    required this.label,
+    required this.color,
+    required this.rotation,
+  });
+
+  final String label;
+  final Color color;
+  final double rotation;
+
+  @override
+  Widget build(BuildContext context) {
+    return Transform.rotate(
+      angle: rotation,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color, width: 2.5),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.5),
+              blurRadius: 16,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: color,
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 2.0,
+          ),
+        ),
+      ),
     );
   }
 }
