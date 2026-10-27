@@ -18,6 +18,7 @@ import 'loan_triple_shot.dart';
 export 'active_debt.dart';
 export 'debt_manager.dart';
 export 'loan.dart';
+export 'loan_offer_controller.dart';
 export 'loan_big_heart.dart';
 export 'loan_constants.dart';
 export 'loan_dash_boots.dart';
