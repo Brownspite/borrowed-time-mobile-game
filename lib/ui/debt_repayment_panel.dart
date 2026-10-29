@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../game/borrowed_time_game.dart';
 import '../loans/active_debt.dart';
 import '../loans/debt_manager.dart';
+import '../loans/loan_shark_personality.dart';
+import 'loan_shark_speech_bubble.dart';
 
 /// Panel allowing players to view active debts and pay them early via HP, score,
 /// or sacrificing another active upgrade.
@@ -228,7 +230,20 @@ class _DebtRepaymentPanelState extends State<DebtRepaymentPanel> {
                 ),
               ],
             ),
-            const Divider(color: Colors.white12, height: 20),
+            const Divider(color: Colors.white12, height: 16),
+
+            // Loan Shark Reaction
+            LoanSharkSpeechBubble(
+              loanShark: widget.game.loanShark,
+              mood: widget.game.loanShark.currentMood(_debtManager),
+              message: widget.game.loanShark.lastSpokenLine.isNotEmpty
+                  ? widget.game.loanShark.lastSpokenLine
+                  : widget.game.loanShark.speak(
+                      SharkDialogueCategory.debtPaidEarly,
+                      debtLevel: _debtManager.totalDebtLevel,
+                    ),
+            ),
+            const SizedBox(height: 8),
 
             // Player Balances bar
             Container(

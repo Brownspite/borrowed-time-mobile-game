@@ -4,6 +4,7 @@ import '../game/borrowed_time_game.dart';
 import 'active_debt.dart';
 import 'debt_notice.dart';
 import 'loan.dart';
+import 'loan_shark_personality.dart';
 import 'loan_constants.dart';
 
 enum PaymentType {
@@ -101,6 +102,13 @@ class DebtManager {
         ));
       }
     }
+
+    if (pendingNotices.isNotEmpty) {
+      game.loanShark.speak(
+        SharkDialogueCategory.debtCollected,
+        debtLevel: totalDebtLevel,
+      );
+    }
   }
 
   /// Clears any pending debt collection banners.
@@ -143,6 +151,10 @@ class DebtManager {
     }
 
     activeDebts.remove(debt);
+    game.loanShark.speak(
+      SharkDialogueCategory.debtPaidEarly,
+      debtLevel: totalDebtLevel,
+    );
     return true;
   }
 
