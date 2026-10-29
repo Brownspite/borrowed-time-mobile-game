@@ -13,6 +13,8 @@ import '../core/game_phase.dart';
 import '../core/game_state.dart';
 import '../core/player_stats.dart';
 import '../loans/loan_registry.dart';
+import '../loans/loan_shark.dart';
+import '../loans/loan_shark_personality.dart';
 import '../ui/between_waves_overlay.dart';
 import '../ui/dead_overlay.dart';
 import '../ui/hud_overlay.dart';
@@ -31,6 +33,7 @@ class BorrowedTimeGame extends FlameGame
   final GameState gameState = GameState();
   final PlayerStats playerStats = PlayerStats();
   late final DebtManager debtManager;
+  final LoanShark loanShark = LoanShark();
   final GlobalKey<HudOverlayState> hudKey = GlobalKey<HudOverlayState>();
 
   // ── Loan offer state ───────────────────────────────────────────────────────
@@ -191,6 +194,10 @@ class BorrowedTimeGame extends FlameGame
   void onPlayerDied() {
     if (gameState.phase == GamePhase.dead) return; // guard double-trigger
     gameState.phase = GamePhase.dead;
+    loanShark.speak(
+      SharkDialogueCategory.playerDied,
+      debtLevel: debtManager.totalDebtLevel,
+    );
     moveDirection.setZero();
     _isDragging = false;
     try {
@@ -242,6 +249,7 @@ class BorrowedTimeGame extends FlameGame
     gameState.reset();
     playerStats.reset();
     debtManager.reset();
+    loanShark.resetForNewRun();
     scoreMultiplier = 1.0;
     enemySpeedMultiplier = 1.0;
     enemyCountMultiplier = 1.0;
@@ -357,6 +365,8 @@ class BorrowedTimeGame extends FlameGame
             score: game.gameState.score,
             wave: game.gameState.wave,
             onRestart: game.restart,
+            loanShark: game.loanShark,
+            debtLevel: game.debtManager.totalDebtLevel,
           ),
       _OverlayKeys.betweenWaves: (context, game) => BetweenWavesOverlay(
             waveNumber: game.gameState.wave,

@@ -8,11 +8,15 @@ class DeadOverlay extends StatelessWidget {
     required this.score,
     required this.wave,
     required this.onRestart,
+    this.loanShark,
+    this.debtLevel,
   });
 
   final int score;
   final int wave;
   final VoidCallback onRestart;
+  final dynamic loanShark;
+  final int? debtLevel;
 
   @override
   Widget build(BuildContext context) {
