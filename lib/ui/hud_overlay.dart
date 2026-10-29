@@ -5,6 +5,7 @@ import '../core/game_state.dart';
 import '../core/player_stats.dart';
 import '../game/borrowed_time_game.dart';
 import '../loans/loan_registry.dart';
+import '../loans/loan_shark_personality.dart';
 import 'compact_debt_hud.dart';
 
 /// Minimal HUD drawn on top of the game canvas via GameWidget overlays.
@@ -26,8 +27,23 @@ class HudOverlay extends StatefulWidget {
 }
 
 class HudOverlayState extends State<HudOverlay> {
+  bool _lowHpAlerted = false;
+
   void refresh() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    final hpFraction = widget.playerStats.maxHp > 0
+        ? widget.playerStats.hp / widget.playerStats.maxHp
+        : 1.0;
+    if (hpFraction <= 0.3 && hpFraction > 0 && !_lowHpAlerted) {
+      _lowHpAlerted = true;
+      widget.game.loanShark.speak(
+        SharkDialogueCategory.playerLowHp,
+        debtLevel: widget.game.debtManager.totalDebtLevel,
+      );
+    } else if (hpFraction > 0.35) {
+      _lowHpAlerted = false;
+    }
+    setState(() {});
   }
 
   void _openDebugModal() {

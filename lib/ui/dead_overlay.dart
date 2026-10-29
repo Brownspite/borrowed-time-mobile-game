@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../loans/loan_shark.dart';
+import '../loans/loan_shark_personality.dart';
+import 'loan_shark_speech_bubble.dart';
+
 /// Death screen — shown when the player's HP reaches zero.
 /// Freezes the game behind it and provides a single tap to restart.
 class DeadOverlay extends StatelessWidget {
@@ -15,7 +19,7 @@ class DeadOverlay extends StatelessWidget {
   final int score;
   final int wave;
   final VoidCallback onRestart;
-  final dynamic loanShark;
+  final LoanShark? loanShark;
   final int? debtLevel;
 
   @override
@@ -48,7 +52,27 @@ class DeadOverlay extends StatelessWidget {
               _statRow('SCORE', score.toString()),
               const SizedBox(height: 6),
               _statRow('WAVE REACHED', wave.toString()),
-              const SizedBox(height: 40),
+              const SizedBox(height: 20),
+
+              // ── Loan Shark Death Comment ─────────────────────────────────
+              if (loanShark != null) ...[
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 320),
+                  child: LoanSharkSpeechBubble(
+                    loanShark: loanShark!,
+                    mood: loanShark!.getMoodForDebtLevel(debtLevel ?? 0),
+                    message: loanShark!.lastSpokenLine.isNotEmpty
+                        ? loanShark!.lastSpokenLine
+                        : loanShark!.speak(
+                            SharkDialogueCategory.playerDied,
+                            debtLevel: debtLevel ?? 0,
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ] else
+                const SizedBox(height: 40),
+
               // ── AGAIN button ─────────────────────────────────────────────
               GestureDetector(
                 onTap: onRestart,
