@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../game/borrowed_time_game.dart';
+import '../loans/loan_shark_personality.dart';
 import 'debt_banner_widget.dart';
 import 'debt_repayment_panel.dart';
 import 'loan_action_buttons.dart';
+import 'loan_shark_speech_bubble.dart';
 import 'swipable_loan_card.dart';
 
 /// Between-waves overlay.
@@ -28,6 +30,23 @@ class _BetweenWavesOverlayState extends State<BetweenWavesOverlay> {
   final GlobalKey<SwipableLoanCardState> _cardKey =
       GlobalKey<SwipableLoanCardState>();
 
+  String? _activeSharkLine;
+
+  @override
+  void initState() {
+    super.initState();
+    _initSharkLine();
+  }
+
+  void _initSharkLine() {
+    if (widget.game != null) {
+      _activeSharkLine = widget.game!.loanShark.speak(
+        SharkDialogueCategory.loanOffered,
+        debtLevel: widget.game!.debtManager.totalDebtLevel,
+      );
+    }
+  }
+
   void _handleDecision({required bool accepted}) {
     final controller = widget.game?.currentOfferController;
     if (controller == null) return;
@@ -38,6 +57,15 @@ class _BetweenWavesOverlayState extends State<BetweenWavesOverlay> {
       widget.game?.hudKey.currentState?.refresh();
     }
     controller.recordDecision(accepted: accepted);
+
+    if (widget.game != null) {
+      _activeSharkLine = widget.game!.loanShark.speak(
+        accepted
+            ? SharkDialogueCategory.loanTaken
+            : SharkDialogueCategory.loanRefused,
+        debtLevel: widget.game!.debtManager.totalDebtLevel,
+      );
+    }
 
     if (controller.isComplete) {
       widget.game?.onLoanOffersCompleted();
@@ -103,7 +131,7 @@ class _BetweenWavesOverlayState extends State<BetweenWavesOverlay> {
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -191,7 +219,18 @@ class _BetweenWavesOverlayState extends State<BetweenWavesOverlay> {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 6),
+
+                  // Loan Shark Speech Bubble
+                  if (widget.game != null && _activeSharkLine != null) ...[
+                    LoanSharkSpeechBubble(
+                      loanShark: widget.game!.loanShark,
+                      mood: widget.game!.loanShark
+                          .currentMood(widget.game!.debtManager),
+                      message: _activeSharkLine!,
+                    ),
+                    const SizedBox(height: 6),
+                  ],
 
                   // Swipable Card
                   SwipableLoanCard(
@@ -202,7 +241,7 @@ class _BetweenWavesOverlayState extends State<BetweenWavesOverlay> {
                     onTake: () => _handleDecision(accepted: true),
                     onRefuse: () => _handleDecision(accepted: false),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
 
                   // Accessibility Fallback Buttons
                   LoanActionButtons(

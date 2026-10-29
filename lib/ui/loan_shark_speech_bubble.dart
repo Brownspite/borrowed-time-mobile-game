@@ -12,7 +12,7 @@ class LoanSharkSpeechBubble extends StatelessWidget {
     required this.loanShark,
     required this.mood,
     required this.message,
-    this.avatarSize = 46.0,
+    this.avatarSize = 32.0,
   });
 
   final LoanShark loanShark;
@@ -45,7 +45,7 @@ class LoanSharkSpeechBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
+      margin: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -55,12 +55,12 @@ class LoanSharkSpeechBubble extends StatelessWidget {
             mood: mood,
             size: avatarSize,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
 
           // Speech bubble card
           Expanded(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: _bubbleBackground,
                 borderRadius: const BorderRadius.only(
